@@ -38,9 +38,6 @@ instance = ec2.create_instances(
 instance_id = instance[0].id
 ~~~~
 
-#### Deploy the web application:
-Use the EC2 instance_id to SSH into the instance and deploy the application.This can be  automated  by copying files and using SSH/SFTP tools or integrate this step into the UserData script.
-
 ### 2. Load Balancing with Application Load Balancer (ALB):
 
 #### Create an ALB using boto3:
@@ -57,7 +54,7 @@ load_balancer = elb.create_load_balancer(
 lb_arn = load_balancer['LoadBalancers'][0]['LoadBalancerArn']
 ~~~
 
-### Register EC2 instance with ALB:
+#### Register EC2 instance with ALB:
 
 ~~~
 elb.register_targets(
@@ -67,73 +64,68 @@ elb.register_targets(
 )
 ~~~
 
-### 3. Auto Scaling Group (ASG) Configuration:
+### 3. Auto Scaling Group (ASG) Configuration
 
-#### Create an ASG with EC2 instances as a template:
-Configure the ASG to use the EC2 instance template (Launch Configuration or Launch Template).
+#### Create a Launch Template for the EC2 instance:
+
 ~~~
 autoscaling = boto3.client('autoscaling')
+response = autoscaling.create_launch_configuration(
+    LaunchConfigurationName='web-app-launch-config',
+    ImageId='ami-0c55b159cbfafe1f0',
+    InstanceType='t2.micro',
+    KeyName='your-key-pair',
+    SecurityGroups=['sg-0123456789abcdef0']
+)
+~~~
+
+#### Create an Auto Scaling Group:
+~~~
 response = autoscaling.create_auto_scaling_group(
-    AutoScalingGroupName='my-web-app-asg',
-    LaunchConfigurationName='my-launch-configuration',
+    AutoScalingGroupName='web-app-asg',
+    LaunchConfigurationName='web-app-launch-config',
     MinSize=1,
     MaxSize=5,
     DesiredCapacity=2,
-    VPCZoneIdentifier='subnet-0123456789abcdef0,subnet-0987654321fedcba'
+    VPCZoneIdentifier='subnet-0123456789abcdef0,subnet-0123456789abcdef1',
+    TargetGroupARNs=['your-target-group-arn'],
 )
+~~~
 
-#### Configure scaling policies:
-Set up scaling policies to adjust based on CloudWatch metrics like CPU utilization.
+#### Define Scaling Policies: Create scaling policies based on metrics like CPU utilization:
 
 ~~~
+cloudwatch = boto3.client('cloudwatch')
 scaling_policy = autoscaling.put_scaling_policy(
-    AutoScalingGroupName='my-web-app-asg',
-    PolicyName='scale-up',
+    AutoScalingGroupName='web-app-asg',
+    PolicyName='ScaleOutPolicy',
     AdjustmentType='ChangeInCapacity',
     ScalingAdjustment=1,
     Cooldown=300
 )
 ~~~
 
-### 4. SNS Notifications:
-Set up SNS topics for health and scaling alerts:
-Create SNS topics to send notifications when scaling events occur or if health checks fail.
+### 4. SNS Notifications
 
+#### Create SNS Topic for Alerts:
 ~~~
 sns = boto3.client('sns')
-scaling_topic = sns.create_topic(Name='scaling-events')
-health_topic = sns.create_topic(Name='health-alerts')
-
-#Subscribe admins to receive notifications via email
-sns.subscribe(TopicArn=scaling_topic['TopicArn'], Protocol='email', Endpoint='admin@example.com')
-sns.subscribe(TopicArn=health_topic['TopicArn'], Protocol='email', Endpoint='admin@example.com')
+response = sns.create_topic(Name='scaling-alerts')
+topic_arn = response['TopicArn']
 ~~~
 
-#### Integrate SNS with Lambda for notifications:
-You can set up Lambda functions triggered by Auto Scaling events or CloudWatch alarms to publish messages to SNS topics.
-
-### 5. Infrastructure Automation:
-Single script to manage the infrastructure:
-Create a single Python script that automates deployment, updates, and teardown of the entire stack.
+#### Subscribe Admins to the Topic:
 ~~~
-def deploy_infrastructure():
-    # Create S3 bucket, launch EC2, configure ALB, set up ASG, SNS, etc.
-    pass
-
-def update_infrastructure():
-    # Logic for updating the infrastructure
-    pass
-
-def teardown_infrastructure():
-    # Logic for tearing down the infrastructure
-    pass
+response = sns.subscribe(
+    TopicArn=topic_arn,
+    Protocol='email',
+    Endpoint='admin@example.com'
+)
 ~~~
 
-### 6. Optional Enhancement – Dynamic Content Handling:
-Store user-generated content on S3:
-For uploads, temporarily store them on EC2 and move them to S3 with a background job or Lambda.
+#### Trigger SNS Notifications on Scaling Events: 
+We can use CloudWatch Alarms or Lambda to trigger SNS notifications based on scaling events or health checks.
 
-~~~
-def move_to_s3(file_path, bucket_name):
-    s3.upload_file(file_path, bucket_name, 'uploads/' + file_path)
-~~~
+### 5. Infrastructure Automation Script
+End-to-End Automation Script for deployment and teardown of the infrastructure is can be seen here [automation_script](automation_script.py)
+
