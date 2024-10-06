@@ -24,7 +24,7 @@ instance = ec2.create_instances(
     ImageId='ami-0e42b3cc568cd07e3',
     InstanceType='t4g.micro',
     KeyName='ramananda_key',
-    SecurityGroupIds=['sg-057f0e6c8849c7ff8 (default)']
+    SecurityGroupIds=['sg-057f0e6c8849c7ff8']
     MinCount=1,
     MaxCount=1,
     UserData='''#!/bin/bash
@@ -48,7 +48,7 @@ elb = boto3.client('elbv2')
 load_balancer = elb.create_load_balancer(
     Name='ramananda-lb',
     Subnets=['subnet-03ca36de9a927fe8e', 'subnet-09bd0e0acc92d4efa'], 
-    SecurityGroups=['sg-057f0e6c8849c7ff8 (default)']
+    SecurityGroups=['sg-057f0e6c8849c7ff8']
 )
 
 lb_arn = load_balancer['LoadBalancers'][0]['LoadBalancerArn']
@@ -72,10 +72,10 @@ elb.register_targets(
 autoscaling = boto3.client('autoscaling')
 response = autoscaling.create_launch_configuration(
     LaunchConfigurationName='web-app-launch-config',
-    ImageId='ami-0c55b159cbfafe1f0',
-    InstanceType='t2.micro',
-    KeyName='your-key-pair',
-    SecurityGroups=['sg-0123456789abcdef0']
+    ImageId='ami-0e42b3cc568cd07e3',
+    InstanceType='t4g.micro',
+    KeyName='ramananda_key',
+    SecurityGroups=['sg-057f0e6c8849c7ff8']
 )
 ~~~
 
