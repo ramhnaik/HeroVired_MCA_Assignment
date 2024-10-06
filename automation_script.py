@@ -12,7 +12,7 @@ def launch_ec2_instance()
     ImageId='ami-0e42b3cc568cd07e3',
     InstanceType='t4g.micro',
     KeyName='ramananda_key',
-    SecurityGroupIds=['sg-057f0e6c8849c7ff8 (default)']
+    SecurityGroupIds=['sg-057f0e6c8849c7ff8']
     MinCount=1,
     MaxCount=1,
     UserData='''#!/bin/bash
