@@ -119,7 +119,7 @@ topic_arn = response['TopicArn']
 response = sns.subscribe(
     TopicArn=topic_arn,
     Protocol='email',
-    Endpoint='admin@example.com'
+    Endpoint='ramhnaik@gmail.com'
 )
 ~~~
 
